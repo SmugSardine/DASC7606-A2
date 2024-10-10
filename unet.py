@@ -110,6 +110,8 @@ class DecoderBlock(nn.Module):
         # ---------- **** ---------- #
         # YOUR CODE HERE
         # Hint: you can refer to the EncoderBlock class
+        print('will finish it someday.')
+        
         # ---------- **** ---------- #
 
     def forward(self,x,x_shortcut,t=None):
@@ -117,6 +119,8 @@ class DecoderBlock(nn.Module):
         # ---------- **** ---------- #
         # YOUR CODE HERE
         # Hint: you can refer to the EncoderBlock class and use nn.Upsample
+        print('will finish it someday.')
+        
         # ---------- **** ---------- #
 
         return x
@@ -148,6 +152,9 @@ class Unet(nn.Module):
         '''
         # ---------- **** ---------- #
         # YOUR CODE HERE
+
+        print('will finish it someday.')
+        
         # ---------- **** ---------- #
         return x
 
