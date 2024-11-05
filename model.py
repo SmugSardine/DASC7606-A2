@@ -12,7 +12,9 @@ class Diffuser(nn.Module):
         self.in_channels = in_channels
         self.image_size = image_size
 
+        # TODO: switch between cosine and linear variance schedules
         betas = self._cosine_variance_schedule(timesteps) # or self._linear_variance_schedule(timesteps)
+        # betas = self._linear_variance_schedule(timesteps)
         alphas = 1. - betas
         alphas_cumprod = torch.cumprod(alphas,dim=-1)
 
@@ -57,10 +59,9 @@ class Diffuser(nn.Module):
             reference: the DDPM paper https://proceedings.neurips.cc/paper/2020/file/4c5bcfec8584af0d967f1ab10179ca4b-Paper.pdf
             You might compare the model performance of linear and cosine variance schedules. 
         '''
-        raise NotImplementedError
         # ---------- **** ---------- #
         # YOUR CODE HERE
-        betas = ...
+        betas = torch.linspace(1e-4,0.02,timesteps) # as implemented in the DDPM paper.
         return betas
         # ---------- **** ---------- #
 
@@ -71,10 +72,10 @@ class Diffuser(nn.Module):
             please note that alpha related tensors are registered as buffers in __init__, you can use gather method to get the values
             reference: https://lilianweng.github.io/posts/2021-07-11-diffusion-models/#forward-diffusion-process
         '''
-        raise NotImplementedError
         # ---------- **** ---------- #
         # YOUR CODE HERE
-        x_t = ...
+        alpha_t_cumprod=self.alphas_cumprod.gather(-1,t).reshape(x_t.shape[0],1,1,1)
+        x_t = torch.sqrt(alpha_t_cumprod)*x_0 + torch.sqrt(1. - alpha_t_cumprod)*noise
         return x_t
         # ---------- **** ---------- #
 
@@ -93,7 +94,7 @@ class Diffuser(nn.Module):
         beta_t=self.betas.gather(-1,t).reshape(x_t.shape[0],1,1,1)
         
         x_0_pred=torch.sqrt(1. / alpha_t_cumprod)*x_t-torch.sqrt(1. / alpha_t_cumprod - 1.)*pred
-        x_0_pred.clamp_(-1., 1.)
+        x_0_pred.clamp_(-1., 1.) # TODO: clipping
 
         if t.min()>0:
             alpha_t_cumprod_prev=self.alphas_cumprod.gather(-1,t-1).reshape(x_t.shape[0],1,1,1)
