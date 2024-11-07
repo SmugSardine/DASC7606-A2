@@ -110,8 +110,9 @@ class DecoderBlock(nn.Module):
         # ---------- **** ---------- #
         # YOUR CODE HERE
         # Hint: you can refer to the EncoderBlock class
-        self.conv0=nn.Sequential(*[ResidualBottleneck(in_channels,in_channels) for i in range(3)],ResidualBottleneck(in_channels,out_channels*2))
-        self.time_mlp=TimeMLP(embedding_dim=time_embedding_dim,hidden_dim=out_channels,out_dim=out_channels*2)
+        
+        self.conv0=nn.Sequential(*[ResidualBottleneck(in_channels*2,in_channels*2) for i in range(3)],ResidualBottleneck(in_channels*2,out_channels)) #FIXME: debug
+        self.time_mlp=TimeMLP(embedding_dim=time_embedding_dim,hidden_dim=out_channels*2,out_dim=out_channels)
         self.conv1=ResidualBottleneck(out_channels*2,out_channels) # FIXME: change
         
         # ---------- **** ---------- #
@@ -124,17 +125,12 @@ class DecoderBlock(nn.Module):
         # TODO: Input (x, x_shortcut, t) --> upsample x --> concat(x, x_shortcut) --> conv0, timemlp, conv1
         m=nn.Upsample(scale_factor=2,mode='nearest')
         x=m(x)
-        print('upsampled')
         x=torch.cat((x,x_shortcut),dim=1)
-        print('concatenated')
         x=self.conv0(x)
-        print('conv0')
         if t is not None: x=self.time_mlp(x,t)
         x=self.conv1(x)
-        print('conv1')
         
         # ---------- **** ---------- #
-
         return x
 
 
