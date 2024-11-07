@@ -111,9 +111,9 @@ class DecoderBlock(nn.Module):
         # YOUR CODE HERE
         # Hint: you can refer to the EncoderBlock class
         
-        self.conv0=nn.Sequential(*[ResidualBottleneck(in_channels*2,in_channels*2) for i in range(3)],
-        ResidualBottleneck(in_channels*2,out_channels)) #FIXME: debug
-        self.time_mlp=TimeMLP(embedding_dim=time_embedding_dim,hidden_dim=out_channels*2,out_dim=out_channels)
+        self.conv0=nn.Sequential(*[ResidualBottleneck(in_channels//2,in_channels//2) for i in range(3)],
+        ResidualBottleneck(in_channels//2,out_channels)) #FIXME: debug
+        self.time_mlp=TimeMLP(embedding_dim=time_embedding_dim,hidden_dim=out_channels,out_dim=out_channels)
         self.conv1=ResidualBottleneck(out_channels,out_channels) # FIXME: change
         
         # ---------- **** ---------- #
