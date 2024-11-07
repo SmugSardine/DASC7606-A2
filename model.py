@@ -13,7 +13,7 @@ class Diffuser(nn.Module):
         self.image_size = image_size
 
         # TODO: switch between cosine and linear variance schedules
-        betas = self._cosine_variance_schedule(timesteps) # or self._linear_variance_schedule(timesteps)
+        betas = self._cosine_variance_schedule(timesteps)
         # betas = self._linear_variance_schedule(timesteps)
         alphas = 1. - betas
         alphas_cumprod = torch.cumprod(alphas,dim=-1)
@@ -74,7 +74,7 @@ class Diffuser(nn.Module):
         '''
         # ---------- **** ---------- #
         # YOUR CODE HERE
-        alpha_t_cumprod=self.alphas_cumprod.gather(-1,t).reshape(x_t.shape[0],1,1,1)
+        alpha_t_cumprod=self.alphas_cumprod.gather(-1,t).reshape(x_0.shape[0],1,1,1)
         x_t = torch.sqrt(alpha_t_cumprod)*x_0 + torch.sqrt(1. - alpha_t_cumprod)*noise
         return x_t
         # ---------- **** ---------- #
