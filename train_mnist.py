@@ -13,7 +13,7 @@ import argparse
 import datetime
 from pathlib import Path
 from tqdm import tqdm
-
+from torch.utils.tensorboard import SummaryWriter
 
 class ExponentialMovingAverage(torch.optim.swa_utils.AveragedModel):
     """Maintains moving averages of model parameters using an exponential decay.
@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--n_samples', type=int, help='define sampling amounts after every epoch trained', default=36)
     parser.add_argument('--model_base_dim', type=int,help='base dim of Unet', default=64)
     parser.add_argument('--timesteps', type=int, help='sampling steps of DDPM', default=1000)
+    parser.add_argument('--label',type=int, help='label for conditional generation', default=None)
     parser.add_argument('--model_ema_steps', type=int, help='ema model evaluation interval', default=10)
     parser.add_argument('--model_ema_decay', type=float, help='ema model decay', default=0.995)
     parser.add_argument('--cpu', action='store_true', help='cpu training')
@@ -93,15 +94,17 @@ def main(args):
     (exp_path / "ckpt").mkdir(exist_ok=True)
     (exp_path / "img").mkdir(exist_ok=True)
     
+    writer = SummaryWriter(exp_path / "tensorboard")
     ckpt_list = []
     for i in range(args.epochs):
         model.train()
         leave_option = False if i < args.epochs - 1 else True
         training_progress = tqdm(train_dataloader, desc='Training Progress', leave=leave_option)
-        for image, _ in training_progress:
+        for image, label in training_progress:
             noise = torch.randn_like(image).to(device)
             image = image.to(device)
-            pred = model(image, noise)
+            label = label.to(device)
+            pred = model(image, noise, label)
             loss: Tensor = loss_fn(pred, noise)
             loss.backward()
             optimizer.step()
@@ -111,6 +114,8 @@ def main(args):
                 model_ema.update_parameters(model)
             global_steps += 1
             training_progress.set_description(f"epoch-{i} loss: {loss.detach().cpu().item():.4f}")
+     
+        writer.add_scalar('Loss', loss.detach().cpu().item(), i) # student: store loss
         ckpt = {
             "model": model.state_dict(),
             "model_ema": model_ema.state_dict()
@@ -121,11 +126,19 @@ def main(args):
         if len(ckpt_list) > 5:
             remove_ckpt = ckpt_list.pop()
             remove_ckpt.unlink()
+            
+        # if i==99: # only visualise the last epoch
+        if i%10==9: # only visualise once every 10 epochs to speed up training.
+            model_ema.eval()
+            samples=model_ema.module.sampling(args.n_samples, args.label, device=device)
+            save_image(samples, exp_path / "img" / f"{i}.png", nrow=int(math.sqrt(args.n_samples)))
+            
+#         model_ema.eval()
+#         samples=model_ema.module.sampling(args.n_samples, args.label, device=device)
+#         save_image(samples, exp_path / "img" / f"{i}.png", nrow=int(math.sqrt(args.n_samples)))
 
-        model_ema.eval()
-        samples=model_ema.module.sampling(args.n_samples, device=device)
-        save_image(samples, exp_path / "img" / f"{i}.png", nrow=int(math.sqrt(args.n_samples)))
-
+    # plot loss curve
+    writer.close()
 if __name__=="__main__":
     args=parse_args()
     main(args)

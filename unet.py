@@ -110,11 +110,10 @@ class DecoderBlock(nn.Module):
         # ---------- **** ---------- #
         # YOUR CODE HERE
         # Hint: you can refer to the EncoderBlock class
-        
-        self.conv0=nn.Sequential(*[ResidualBottleneck(in_channels//2,in_channels//2) for i in range(3)],
-        ResidualBottleneck(in_channels//2,out_channels)) #FIXME: debug
-        self.time_mlp=TimeMLP(embedding_dim=time_embedding_dim,hidden_dim=out_channels,out_dim=out_channels)
-        self.conv1=ResidualBottleneck(out_channels,out_channels) # FIXME: change
+        self.conv0=nn.Sequential(*[ResidualBottleneck(in_channels,in_channels) for i in range(3)],
+        ResidualBottleneck(in_channels,out_channels)) 
+        self.time_mlp=TimeMLP(embedding_dim=time_embedding_dim,hidden_dim=out_channels//2,out_dim=out_channels)
+        self.conv1=ResidualBottleneck(out_channels,out_channels//2)
         
         # ---------- **** ---------- #
 
@@ -137,7 +136,7 @@ class DecoderBlock(nn.Module):
 
 class Unet(nn.Module):
 
-    def __init__(self,timesteps,time_embedding_dim,in_channels=3,out_channels=2,base_dim=32,dim_mults=[2,4,8,16]):
+    def __init__(self,timesteps,time_embedding_dim,in_channels=3,out_channels=2,base_dim=32,dim_mults=[2,4,8,16],label_embedding_dim=256):
         super().__init__()
         assert isinstance(dim_mults,(list,tuple))
         assert base_dim%2==0 
@@ -146,7 +145,7 @@ class Unet(nn.Module):
 
         self.init_conv=ConvBnSiLu(in_channels,base_dim,3,1,1)
         self.time_embedding=nn.Embedding(timesteps,time_embedding_dim)
-        # self.label_embedding=nn.Embedding(10,time_embedding_dim) #FIXME: switch on for conditional
+        self.label_embedding=nn.Embedding(10,label_embedding_dim) #TODO: token embedding for label, hard-coded dim for now.
         self.encoder_blocks=nn.ModuleList([EncoderBlock(c[0],c[1],time_embedding_dim) for c in channels])
         self.decoder_blocks=nn.ModuleList([DecoderBlock(c[1],c[0],time_embedding_dim) for c in channels[::-1]])
     
@@ -155,28 +154,29 @@ class Unet(nn.Module):
 
         self.final_conv=nn.Conv2d(in_channels=channels[0][0]//2,out_channels=out_channels,kernel_size=1)
 
-    def forward(self,x,t=None, l=None):
+    def forward(self,x,t, label=None):
         '''
             Implement the data flow of the UNet architecture
         '''
         # ---------- **** ---------- #
         # YOUR CODE HERE
+        t = self.time_embedding(t)
+        if label is not None: # student: add label embedding, which is combined with time embedding for simplicity.
+            t += self.label_embedding(label)
+            
         x = self.init_conv(x)
-        if t is not None: t = self.time_embedding(t)
-        if l is not None: l = self.label_embedding(l)
-
+        
         # encoders
         shortcuts = []
         for e in self.encoder_blocks:
-            x, x_shortcut = e.forward(x, t)
+            x, x_shortcut = e(x, t)
             shortcuts.append(x_shortcut)
             
         x = self.mid_block(x)
         
         # decoders
         for d, x_shortcut in zip(self.decoder_blocks, reversed(shortcuts)):
-            x = d.forward(x, x_shortcut, t)
-            
+            x = d(x, x_shortcut, t)
         x = self.final_conv(x)
         
         # ---------- **** ---------- #

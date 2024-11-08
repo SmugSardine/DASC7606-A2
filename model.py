@@ -26,21 +26,28 @@ class Diffuser(nn.Module):
 
         self.model = Unet(timesteps,time_embedding_dim,in_channels,in_channels,base_dim,dim_mults)
 
-    def forward(self, x, noise):
+    def forward(self, x, noise, label):
         # x:NCHW
         t = torch.randint(0, self.timesteps, (x.shape[0],)).to(x.device)
         x_t = self._forward_diffusion(x, t, noise)
-        pred_noise = self.model(x_t, t)
+        pred_noise = self.model(x_t, t, label)
 
         return pred_noise
 
     @torch.no_grad()
-    def sampling(self, n_samples: int, device="cuda") -> Tensor:
+    def sampling(self, n_samples: int, label, device="cuda") -> Tensor:
         x_t=torch.randn((n_samples,self.in_channels,self.image_size,self.image_size)).to(device)
+        
+        if label is not None:
+            if label == 10:
+                label = torch.tensor([0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9]).to(device)
+            else:
+                label = torch.tensor([label] * n_samples).to(device) # cast label into tensor
+        
         for i in range(self.timesteps - 1, -1, -1):
             noise = torch.randn_like(x_t).to(device)
             t = torch.tensor([i for _ in range(n_samples)]).to(device)
-            x_t = self._reverse_diffusion_with_clip(x_t, t, noise)
+            x_t = self._reverse_diffusion_with_clip(x_t, t, label, noise)
 
         x_t=(x_t + 1.) / 2. #[-1,1] to [0,1]
 
@@ -81,14 +88,14 @@ class Diffuser(nn.Module):
 
 
     @torch.no_grad()
-    def _reverse_diffusion_with_clip(self, x_t: Tensor, t: Tensor, noise: Tensor) -> Tensor: 
+    def _reverse_diffusion_with_clip(self, x_t: Tensor, t: Tensor, label, noise: Tensor) -> Tensor: 
         '''
             reverse diffusion process with clipping
             hint: with clip: pred_noise -> pred_x_0 (clip to [-1.0,1.0]) -> pred_mean and pred_std
                   without clip: pred_noise -> pred_mean and pred_std
                   you may compare the model performance with and without clipping
         '''
-        pred=self.model(x_t,t)
+        pred=self.model(x_t,t,label)
         alpha_t=self.alphas.gather(-1,t).reshape(x_t.shape[0],1,1,1)
         alpha_t_cumprod=self.alphas_cumprod.gather(-1,t).reshape(x_t.shape[0],1,1,1)
         beta_t=self.betas.gather(-1,t).reshape(x_t.shape[0],1,1,1)
