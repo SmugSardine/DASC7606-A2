@@ -32,7 +32,8 @@ def create_mnist_dataloaders(batch_size,image_size=28,num_workers=4):
     
     preprocess=transforms.Compose([transforms.Resize(image_size),\
                                     transforms.ToTensor(),\
-                                    transforms.Normalize([0.5],[0.5])]) #[0,1] to [-1,1]
+                                    transforms.Normalize([0.5],[0.5]) #[0,1] to [-1,1]
+                                    ])
 
     train_dataset=MNIST(root="./mnist_data",\
                         train=True,\
@@ -52,8 +53,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Training MNISTDiffusion")
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--batch_size', type=int, default=256)    
-    parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--n_samples', type=int, help='define sampling amounts after every epoch trained', default=36)
+    parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--n_samples', type=int, help='define sampling amounts after every epoch trained', default=16)
     parser.add_argument('--model_base_dim', type=int,help='base dim of Unet', default=64)
     parser.add_argument('--timesteps', type=int, help='sampling steps of DDPM', default=1000)
     parser.add_argument('--label',type=int, help='label for conditional generation', default=None)
@@ -127,7 +128,6 @@ def main(args):
             remove_ckpt = ckpt_list.pop()
             remove_ckpt.unlink()
             
-        # if i==99: # only visualise the last epoch
         if i%10==9: # only visualise once every 10 epochs to speed up training.
             model_ema.eval()
             samples=model_ema.module.sampling(args.n_samples, args.label, device=device)

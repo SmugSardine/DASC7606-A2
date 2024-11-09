@@ -49,7 +49,7 @@ class Diffuser(nn.Module):
             t = torch.tensor([i for _ in range(n_samples)]).to(device)
             x_t = self._reverse_diffusion_with_clip(x_t, t, label, noise)
 
-        x_t=(x_t + 1.) / 2. #[-1,1] to [0,1]
+        x_t=(x_t + 1.) / 2. #[-1,1] to [0,1] TODO: switch off to test no normalisation
 
         return x_t
     
