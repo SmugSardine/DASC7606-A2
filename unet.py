@@ -145,7 +145,7 @@ class Unet(nn.Module):
 
         self.init_conv=ConvBnSiLu(in_channels,base_dim,3,1,1)
         self.time_embedding=nn.Embedding(timesteps,time_embedding_dim)
-        self.label_embedding=nn.Embedding(10,label_embedding_dim) #TODO: token embedding for label, hard-coded dim for now.
+        self.label_embedding=nn.Embedding(10,label_embedding_dim)
         self.encoder_blocks=nn.ModuleList([EncoderBlock(c[0],c[1],time_embedding_dim) for c in channels])
         self.decoder_blocks=nn.ModuleList([DecoderBlock(c[1],c[0],time_embedding_dim) for c in channels[::-1]])
     

@@ -53,8 +53,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Training MNISTDiffusion")
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--batch_size', type=int, default=256)    
-    parser.add_argument('--epochs', type=int, default=30)
-    parser.add_argument('--n_samples', type=int, help='define sampling amounts after every epoch trained', default=16)
+    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--n_samples', type=int, help='define sampling amounts after every epoch trained', default=36)
     parser.add_argument('--model_base_dim', type=int,help='base dim of Unet', default=64)
     parser.add_argument('--timesteps', type=int, help='sampling steps of DDPM', default=1000)
     parser.add_argument('--label',type=int, help='label for conditional generation', default=None)
@@ -104,7 +104,7 @@ def main(args):
         for image, label in training_progress:
             noise = torch.randn_like(image).to(device)
             image = image.to(device)
-            label = label.to(device)
+            label = label.to(device) if args.label is not None else None
             pred = model(image, noise, label)
             loss: Tensor = loss_fn(pred, noise)
             loss.backward()

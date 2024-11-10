@@ -39,10 +39,7 @@ class Diffuser(nn.Module):
         x_t=torch.randn((n_samples,self.in_channels,self.image_size,self.image_size)).to(device)
         
         if label is not None:
-            if label == 10:
-                label = torch.tensor([0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9]).to(device)
-            else:
-                label = torch.tensor([label] * n_samples).to(device) # cast label into tensor
+            label = torch.tensor([label] * n_samples).to(device) # cast label into tensor
         
         for i in range(self.timesteps - 1, -1, -1):
             noise = torch.randn_like(x_t).to(device)
